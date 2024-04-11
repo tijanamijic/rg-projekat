@@ -1,13 +1,17 @@
 #ifndef MESH_H
 #define MESH_H
 
-#include <glad/glad.h> // holds all OpenGL type declarations
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+#include <rg/Error.h>
 
+#include <learnopengl/filesystem.h>
 #include <learnopengl/shader.h>
+#include <learnopengl/camera.h>
+#include <learnopengl/model.h>
 
+#include <iostream>
 #include <string>
 #include <vector>
 using namespace std;
