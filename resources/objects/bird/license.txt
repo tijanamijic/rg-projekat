@@ -1,0 +1,11 @@
+Model Information:
+* title:	Bird
+* source:	https://sketchfab.com/3d-models/bird-e93a906eb38343c4a14458a637136329
+* author:	Blender Artist (https://sketchfab.com/moizmuhammad373)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Bird" (https://sketchfab.com/3d-models/bird-e93a906eb38343c4a14458a637136329) by Blender Artist (https://sketchfab.com/moizmuhammad373) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

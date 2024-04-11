@@ -34,7 +34,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera camera(glm::vec3(3.0f, 0.0f, 15.0f));
+Camera camera(glm::vec3(3.0f, 2.0f, 15.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -44,9 +44,8 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-glm::vec3 backpackPosition = glm::vec3(0.2f);
-float backpackScale = 0.7f;
-
+glm::vec3 planePosition = glm::vec3(0.2f,5.0f,0.2f);
+float planeScale = 0.7f;
 
 
 struct PointLight {
@@ -101,7 +100,16 @@ int main() {
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
+    float transparentVertices[] = {
+            // positions         //normals         // texture Coords (swapped y coordinates because texture is flipped upside down)
+            25.0f,  0.0f,  25.0f, 0.0f, 1.0f, 0.0f, 40.0f, 0.0f,
+            -25.0f,  0.0f,  25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+            -25.0f,  0.0f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 40.0f,
 
+            25.0f,  0.0f,  25.0f, 0.0f, 1.0f, 0.0f, 40.0f, 0.0f,
+            -25.0f,  0.0f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 40.0f,
+            25.0f,  0.0f, -25.0f, 0.0f, 1.0f, 0.0f, 40.0f, 40.0f
+    };
 
     // configure global opengl state
     // -----------------------------
@@ -109,9 +117,23 @@ int main() {
 
     // build and compile shaders
     // -------------------------
-    Shader modelShader("resources/shaders/2.model_lighting.vs", "resources/shaders/2.model_lighting.fs");
+    Shader planeShader("resources/shaders/plane.vs", "resources/shaders/plane.fs");
     Shader skyboxShader("resources/shaders/skybox.vs", "resources/shaders/skybox.fs");
+    Shader waterShader("resources/shaders/water.vs", "resources/shaders/water.fs");
 
+    unsigned int transparentVAO, transparentVBO;
+    glGenVertexArrays(1, &transparentVAO);
+    glGenBuffers(1, &transparentVBO);
+    glBindVertexArray(transparentVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, transparentVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices), transparentVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)nullptr);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     float skyboxVertices[] = {
             // positions
@@ -160,13 +182,22 @@ int main() {
 
     // load models
     // -----------
-    Model ourModel("resources/objects/caravanazip/source/42cc9aa7d22b4afa917d6f84e6c5642f/caravanA.obj");
-    ourModel.SetShaderTextureNamePrefix("material.");
+    Model planeModel("resources/objects/caravanazip/source/42cc9aa7d22b4afa917d6f84e6c5642f/caravanA.obj");
+    planeModel.SetShaderTextureNamePrefix("material.");
 
 
-    for (auto& textures : ourModel.textures_loaded) {
+    for (auto& textures : planeModel.textures_loaded) {
         LOG(std::cerr) << textures.path << ' ' << textures.type << '\n';
     }
+
+    unsigned int diffuseMap = loadTexture(FileSystem::getPath("resources/textures/water.png").c_str());
+    vector<glm::vec3> waterSquares
+            {
+                    glm::vec3(-25.0f, 1.0f, -25.0f),
+                    glm::vec3(-25.0f, 1.0f, 25.0f),
+                    glm::vec3(25.0f, 1.0f, -25.0f),
+                    glm::vec3(25.0f, 1.0f, 25.0f)
+            };
 
     // skybox VAO,VBO
     unsigned int skyboxVAO, skyboxVBO;
@@ -193,8 +224,9 @@ int main() {
 
     // shader configuration
     // --------------------
-    modelShader.use();
-    modelShader.setInt("skybox", 0);
+    planeShader.use();
+    planeShader.setInt("skybox", 0);
+
 
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
@@ -225,6 +257,8 @@ int main() {
         // -----
         processInput(window);
 
+        waterShader.setBool("celShading", true);
+
 
         // render
         // ------
@@ -232,32 +266,59 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // don't forget to enable shader before setting uniforms
-        modelShader.use();
+        planeShader.use();
         pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
-        modelShader.setVec3("pointLight.position", pointLight.position);
-        modelShader.setVec3("pointLight.ambient", pointLight.ambient);
-        modelShader.setVec3("pointLight.diffuse", pointLight.diffuse);
-        modelShader.setVec3("pointLight.specular", pointLight.specular);
-        modelShader.setFloat("pointLight.constant", pointLight.constant);
-        modelShader.setFloat("pointLight.linear", pointLight.linear);
-        modelShader.setFloat("pointLight.quadratic", pointLight.quadratic);
-        modelShader.setVec3("viewPosition", camera.Position);
-        modelShader.setFloat("material.shininess", 32.0f);
+        planeShader.setVec3("pointLight.position", pointLight.position);
+        planeShader.setVec3("pointLight.ambient", pointLight.ambient);
+        planeShader.setVec3("pointLight.diffuse", pointLight.diffuse);
+        planeShader.setVec3("pointLight.specular", pointLight.specular);
+        planeShader.setFloat("pointLight.constant", pointLight.constant);
+        planeShader.setFloat("pointLight.linear", pointLight.linear);
+        planeShader.setFloat("pointLight.quadratic", pointLight.quadratic);
+        planeShader.setVec3("viewPosition", camera.Position);
+        planeShader.setFloat("material.shininess", 32.0f);
         // view/projection transformations
 
+
+
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model,backpackPosition); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(backpackScale));
+        model = glm::translate(model,planePosition); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(planeScale));
+
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        modelShader.setMat4("model", model);
-        modelShader.setMat4("view", view);
-        modelShader.setMat4("projection", projection);
-        modelShader.setVec3("cameraPos", camera.Position);
-        ourModel.Draw(modelShader);
+        planeShader.setMat4("model", model);
+        planeShader.setMat4("view", view);
+        planeShader.setMat4("projection", projection);
+        planeShader.setVec3("cameraPos", camera.Position);
+        planeModel.Draw(planeShader);
 
-        //if (programState->ImGuiEnabled)
-          //  DrawImGui(programState);
+
+        std::map<float, glm::vec3> sorted;
+        for (auto & waterSquare : waterSquares)
+        {
+            float distance = glm::length(camera.Position - waterSquare);
+            sorted[distance] = waterSquare;
+        }
+
+        waterShader.use();
+        waterShader.setVec3("viewPos", camera.Position);
+
+        waterShader.setMat4("projection", projection);
+        waterShader.setMat4("view", view);
+        waterShader.setFloat("currentFrame", currentFrame);
+
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, diffuseMap);
+        glBindVertexArray(transparentVAO);
+        for (auto it = sorted.rbegin(); it != sorted.rend(); ++it)
+        {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, it->second);
+            waterShader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
 
         //skybox
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
