@@ -30,7 +30,7 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera camera(glm::vec3(-8.0f, 1.0f, 10.0f));
+Camera camera(glm::vec3(3.0f, 0.0f, 6.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
@@ -39,6 +39,10 @@ bool firstMouse = true;
 // timing
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
+
+glm::vec3 backpackPosition = glm::vec3(0.0f);
+float backpackScale = 1.0f;
+
 
 
 struct PointLight {
@@ -110,14 +114,13 @@ int main() {
 
     PointLight pointLight;
     pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
-    pointLight.ambient = glm::vec3(0.5, 0.5, 0.5);
+    pointLight.ambient = glm::vec3(1.0, 1.0, 1.0);
     pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
     pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
 
     pointLight.constant = 1.0f;
     pointLight.linear = 0.09f;
     pointLight.quadratic = 0.032f;
-
 
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
@@ -156,6 +159,8 @@ int main() {
         // view/projection transformations
 
         glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model,backpackPosition); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(backpackScale));
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection = glm::perspective(glm::radians(camera.Zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         modelShader.setMat4("model", model);
