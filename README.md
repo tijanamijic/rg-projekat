@@ -4,8 +4,6 @@ Projekat *Flying plane* rađen na predmetu račnarska grafika.
 
 U okviru projekta implementirani su:
 + Skybox
-+ Normal mapping, Parallax mapping
-+ HDR, Bloom
 
 ## Uputstvo
 
@@ -23,7 +21,6 @@ ALT+SHIFT+F10 -> project_base -> run
 
 Skelet projekta preuzet je sa adrese: https://github.com/matf-racunarska-grafika/project_base  
 Svi modeli preuzeti su sa: https://sketchfab.com/feed  
-[Avion](https://sketchfab.com/3d-models/caravanazip-125yIM3DWOvlzV70NvXjZElRdel),
-[Ptice](https://sketchfab.com/3d-models/birds-3a9bb97be78944f9bffc23fb25c2154e)
+[Avion](https://sketchfab.com/3d-models/caravanazip-125yIM3DWOvlzV70NvXjZElRdel)
 
 [Tekstura](https://www.stickpng.com/img/nature/light/white-sparkles) korišćena za blending. 
