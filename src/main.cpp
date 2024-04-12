@@ -34,10 +34,13 @@ const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
 
 // camera
-Camera camera(glm::vec3(3.0f, 2.0f, 15.0f));
+Camera camera(glm::vec3(3.0f, 3.0f, 15.0f));
 float lastX = SCR_WIDTH / 2.0f;
 float lastY = SCR_HEIGHT / 2.0f;
 bool firstMouse = true;
+
+glm::vec3 windowPosition = glm::vec3(0.0f, 25.0f, 0.0f);
+float windowScale = 15.0f;
 
 
 // timing
@@ -100,15 +103,34 @@ int main() {
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
+    glEnable(GL_CULL_FACE);
+    glCullFace(GL_FRONT);
+    glFrontFace(GL_CW);
+
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+
     float transparentVertices[] = {
-            // positions         //normals         // texture Coords (swapped y coordinates because texture is flipped upside down)
+            // positions         //normals         // texture Coords
             25.0f,  0.0f,  25.0f, 0.0f, 1.0f, 0.0f, 40.0f, 0.0f,
-            -25.0f,  0.0f,  25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
             -25.0f,  0.0f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 40.0f,
+            -25.0f,  0.0f,  25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f,
 
             25.0f,  0.0f,  25.0f, 0.0f, 1.0f, 0.0f, 40.0f, 0.0f,
-            -25.0f,  0.0f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 40.0f,
-            25.0f,  0.0f, -25.0f, 0.0f, 1.0f, 0.0f, 40.0f, 40.0f
+            25.0f,  0.0f, -25.0f, 0.0f, 1.0f, 0.0f, 40.0f, 40.0f,
+            -25.0f,  0.0f, -25.0f, 0.0f, 1.0f, 0.0f, 0.0f, 40.0f
+    };
+
+    float transparentVertices2[] = {
+            // positions         // texture Coords
+            0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
+            0.0f, -0.5f,  0.0f,  0.0f,  1.0f,
+            1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+
+            0.0f,  0.5f,  0.0f,  0.0f,  0.0f,
+            1.0f, -0.5f,  0.0f,  1.0f,  1.0f,
+            1.0f,  0.5f,  0.0f,  1.0f,  0.0f
     };
 
     // configure global opengl state
@@ -120,6 +142,30 @@ int main() {
     Shader planeShader("resources/shaders/plane.vs", "resources/shaders/plane.fs");
     Shader skyboxShader("resources/shaders/skybox.vs", "resources/shaders/skybox.fs");
     Shader waterShader("resources/shaders/water.vs", "resources/shaders/water.fs");
+    Shader thunderShader("resources/shaders/thunder.vs","resources/shaders/thunder.fs");
+
+
+
+    unsigned int thunderTex = loadTexture(FileSystem::getPath("resources/textures/blend.png").c_str());
+    // transparent thunder locations
+    // --------------------------------
+    vector<glm::vec3> thunder
+            {
+                    glm::vec3(3.2f,3.0f,3.2f)
+            };
+
+    unsigned int transparentVAO2, transparentVBO2;
+    glGenVertexArrays(1, &transparentVAO2);
+    glGenBuffers(1, &transparentVBO2);
+    glBindVertexArray(transparentVAO2);
+    glBindBuffer(GL_ARRAY_BUFFER, transparentVBO2);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices2), transparentVertices2, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+
 
     unsigned int transparentVAO, transparentVBO;
     glGenVertexArrays(1, &transparentVAO);
@@ -186,9 +232,11 @@ int main() {
     planeModel.SetShaderTextureNamePrefix("material.");
 
 
-    for (auto& textures : planeModel.textures_loaded) {
-        LOG(std::cerr) << textures.path << ' ' << textures.type << '\n';
-    }
+    thunderShader.use();
+    thunderShader.setInt("texture1", 0);
+    //for (auto& textures : planeModel.textures_loaded) {
+      //  LOG(std::cerr) << textures.path << ' ' << textures.type << '\n';
+    //}
 
     unsigned int diffuseMap = loadTexture(FileSystem::getPath("resources/textures/water.png").c_str());
     vector<glm::vec3> waterSquares
@@ -241,8 +289,10 @@ int main() {
     pointLight.linear = 0.09f;
     pointLight.quadratic = 0.032f;
 
+
     // draw in wireframe
     //glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
 
     // render loop
     // -----------
@@ -320,6 +370,19 @@ int main() {
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
 
+
+        thunderShader.use();
+        //blending
+        glBindVertexArray(transparentVAO2);
+        glBindTexture(GL_TEXTURE_2D, thunderTex);
+        for (std::map<float, glm::vec3>::reverse_iterator it = sorted.rbegin(); it != sorted.rend(); ++it)
+        {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, it->second);
+            thunderShader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
+
         //skybox
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
         skyboxShader.use();
@@ -333,6 +396,7 @@ int main() {
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
         glDepthFunc(GL_LESS);
+
 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
